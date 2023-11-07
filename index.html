@@ -11,18 +11,27 @@
 
 <body>
     <div id="container">
-        <div id="modelSwitch">
-            <p id="modelText">GPT-4</p>
-            <label class="switch">
-                <input type="checkbox" id="toggleSwitch">
-                <span class="slider round"></span>
-            </label>
+        <div id="leftContainer">
+            <div id="savedChats">
+                <p>Current chat</p>
+                <p>Older chat</p>
+                <p>Oldest chat</p>
+            </div>
         </div>
-        <div id="chatHistory"></div>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <div id="userInterface">
-            <textarea id="inputBox" placeholder="Type your message..."></textarea>
-            <button id="newButton">"New chat"</button>
+        <div id="rightContainer">
+            <div id="modelSwitch">
+                <p id="modelText">GPT-4</p>
+                <label class="switch">
+                    <input type="checkbox" id="toggleSwitch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div id="chatHistory"></div>
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+            <div id="userInterface">
+                <textarea id="inputBox" placeholder="Type your message..."></textarea>
+                <button id="newButton">"New chat"</button>
+            </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>

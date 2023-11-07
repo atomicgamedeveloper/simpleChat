@@ -19,7 +19,7 @@ var inputBox = document.getElementById('inputBox');
 var newButton = document.getElementById('newButton');
 const toggleSwitch = document.getElementById("toggleSwitch");
 
-if (settings["model"] == "gpt-3.5-turbo") {
+if (settings["model"] == "GPT-3.5-turbo") {
     model = "GPT-3.5-turbo";
     toggleSwitch.checked = false;
 } else {
@@ -56,14 +56,14 @@ async function fetchGPTResponse(messages, model) {
 };
 
 toggleSwitch.addEventListener("change", function () {
-    if (model === "gpt-4") {
-        console.log("gpt-3.5-turbo");
-        model = 'gpt-3.5-turbo';
+    if (model === "GPT-4") {
+        console.log("GPT-3.5-turbo");
+        model = 'GPT-3.5-turbo';
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     } else {
-        console.log("gpt-4");
-        model = 'gpt-4';
+        console.log("GPT-4");
+        model = 'GPT-4';
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     };
