@@ -33,13 +33,13 @@ body {
 }
 
 #savedChats p {
+    padding-left: 4px;
     resize: None;
-    font-weight: lighter;
+    color: #707070;
 }
 
 #savedChats p:hover {
-    resize: None;
-    font-weight: bold;
+    color: #FFFFFF;
 }
 
 #chatHistory {
