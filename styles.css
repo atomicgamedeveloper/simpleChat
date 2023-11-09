@@ -19,7 +19,7 @@ body {
     display: flex;
     flex-direction: column;
     float: left;
-    width: 10%;
+    width: 20%;
     padding-top: 10px;
     flex-grow: 1;
 }
@@ -28,8 +28,13 @@ body {
     display: flex;
     flex-direction: column;
     float: right;
-    width: 85%;
+    width: 80%;
     flex-grow: 1;
+}
+
+#savedChats {
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #savedChats p {
@@ -42,11 +47,15 @@ body {
     color: #FFFFFF;
 }
 
+#savedChats p.selected {
+    color: #FFFFFF;
+}
+
 #chatHistory {
     padding: 25px;
     border: 1px solid #707070;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     height: 90%;
     background-color: #1F1F1F;
     box-sizing: border-box;

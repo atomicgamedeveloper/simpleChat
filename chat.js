@@ -4,12 +4,39 @@ let openAIKey = "";
 let settings = "";
 let savedChats = "";
 
+let newChat = {
+    "name": "New chat",
+    "messages": [],
+    "chatHistory": ""
+};
+
+const savedPath = 'saved-chats.json'
+if (!fs.existsSync(savedPath)) {
+    fs.writeFileSync(savedPath, JSON.stringify([newChat]));
+}
+
+const settingsPath = 'settings.json'
+let newSettings = { "model": "GPT-4-1106-preview" }
+if (!fs.existsSync(settingsPath)) {
+    fs.writeFileSync(settingsPath, JSON.stringify(newSettings));
+}
+
 try {
     openAIKey = fs.readFileSync('openai.txt', 'utf8')
     settings = fs.readFileSync('settings.json', 'utf-8');
     settings = JSON.parse(settings);
     savedChats = fs.readFileSync('saved-chats.json', 'utf-8');
-    savedChats = JSON.parse(savedChats);
+
+    if (savedChats == "" || savedChats == []) {
+        savedChats = [newChat];
+        fs.writeFileSync(savedPath, JSON.stringify(savedChats));
+    } else {
+        savedChats = JSON.parse(savedChats);
+    }
+
+    if (savedChats[0].name != "New chat") {
+        savedChats = [newChat, ...savedChats];
+    }
 } catch (err) {
     console.error('Error reading file:', err);
 }
@@ -43,16 +70,20 @@ const systemMessage = {
 };
 
 let messages = [];
-let selectedChat = 0; //maybe -1 to begin with
+let selectedChat = 0;
 
+let allSavedChats = savedChatsElement.getElementsByTagName("p");
 function selectChat(index) {
     selectedChat = index;
     let chat = savedChats[index];
     messages = chat.messages;
     chatHistory.innerHTML = chat.chatHistory;
+    for (var i = 0; i < allSavedChats.length; i++) {
+        allSavedChats[i].classList.remove('selected');
+    }
+    allSavedChats[index].classList.add("selected");
 };
 
-let allSavedChats = savedChatsElement.getElementsByTagName("p");
 function updateSavedChatNames() {
     savedChatsElement.innerHTML = "";
     var i = 0;
@@ -74,6 +105,7 @@ function updateSavedChatNames() {
             selectChat(i);
         });
     }
+    allSavedChats[selectedChat].classList.add("selected");
 }
 updateSavedChatNames();
 
@@ -112,6 +144,8 @@ inputBox.addEventListener('keydown', async function (e) {
                 chatHistory.innerHTML = oldHistory + `<p>${model}: ${marked.parse(addedHistory)}</p>`;
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            messages.push({ "role": "assistant", "content": addedHistory });
 
             console.log(allSavedChats[0].innerHTML)
             if (allSavedChats[0].innerHTML === "New chat") {
@@ -119,7 +153,7 @@ inputBox.addEventListener('keydown', async function (e) {
                 const stream = await openai.chat.completions.create({
                     'model': "gpt-3.5-turbo",
                     'messages': [{
-                        "role": "user", "content": `Instruction: Name chat from message\nChat: how to make pink cake\nName: Pink Cake Recipe\nChat: ${userMessage}\nName:`,
+                        "role": "user", "content": `Instruction: Name the chat from the last message\nChat: how to make pink cake\nName: Pink Cake Recipe\nChat: ${userMessage}\nName:`,
                     }],
                     'stream': true,
                 });
@@ -128,8 +162,6 @@ inputBox.addEventListener('keydown', async function (e) {
                 }
                 savedChats[0].name = allSavedChats[0].innerHTML;
             }
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-            messages.push({ "role": "assistant", "content": addedHistory });
             savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages, "chatHistory": chatHistory.innerHTML };
             fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
         }
@@ -137,19 +169,22 @@ inputBox.addEventListener('keydown', async function (e) {
 });
 
 newButton.addEventListener('click', function () {
-    if (savedChats[selectedChat].chatHistory != "") {
+    if (savedChats[0].name != "New chat" && savedChats[selectedChat].chatHistory != "") {
         console.log("Making a new chat.");
-        let newChat = {
+        newChat = {
             "name": "New chat",
             "messages": [],
             "chatHistory": ""
         };
+        console.log(newChat)
         savedChats = [newChat, ...savedChats]
         inputBox.value = "";
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
         selectedChat = 0;
         updateSavedChatNames();
     } else {
+        selectedChat = 0;
         console.log("No need for a new chat.");
+        updateSavedChatNames();
     }
 });
