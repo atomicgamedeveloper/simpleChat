@@ -6,8 +6,7 @@ let savedChats = "";
 
 let newChat = {
     "name": "New chat",
-    "messages": [],
-    "chatHistory": ""
+    "messages": []
 };
 
 const savedPath = 'saved-chats.json'
@@ -72,12 +71,22 @@ const systemMessage = {
 let messages = [];
 let selectedChat = 0;
 
+function generateInnerHTMLFromMsgs(msgs) {
+    var history = ""
+    msgs.forEach(message => {
+        var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
+        var content = message.content;
+        history += `<p>${role}:${marked.parse(content)}</p>`;
+    })
+    return history
+}
+
 let allSavedChats = savedChatsElement.getElementsByTagName("p");
 function selectChat(index) {
     selectedChat = index;
     let chat = savedChats[index];
     messages = chat.messages;
-    chatHistory.innerHTML = chat.chatHistory;
+    chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
     for (var i = 0; i < allSavedChats.length; i++) {
         allSavedChats[i].classList.remove('selected');
     }
@@ -91,7 +100,7 @@ function updateSavedChatNames() {
         let chat = savedChats[i];
         if (i == selectedChat) {
             messages = chat.messages;
-            chatHistory.innerHTML = chat.chatHistory;
+            chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
         }
         let name = `<p>${chat.name}</p>`;
         savedChatsElement.innerHTML += name;
@@ -141,7 +150,7 @@ inputBox.addEventListener('keydown', async function (e) {
             let addedHistory = "";
             for await (const part of stream) {
                 addedHistory += part.choices[0]?.delta?.content || '';
-                chatHistory.innerHTML = oldHistory + `<p>${model}: ${marked.parse(addedHistory)}</p>`;
+                chatHistory.innerHTML = oldHistory + `<p>Assistant: ${marked.parse(addedHistory)}</p>`;
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -162,19 +171,18 @@ inputBox.addEventListener('keydown', async function (e) {
                 }
                 savedChats[0].name = allSavedChats[0].innerHTML;
             }
-            savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages, "chatHistory": chatHistory.innerHTML };
+            savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
             fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
         }
     }
 });
 
 newButton.addEventListener('click', function () {
-    if (savedChats[0].name != "New chat" && savedChats[selectedChat].chatHistory != "") {
+    if (savedChats[0].name != "New chat" && savedChats[selectedChat].messages != []) {
         console.log("Making a new chat.");
         newChat = {
             "name": "New chat",
-            "messages": [],
-            "chatHistory": ""
+            "messages": []
         };
         console.log(newChat)
         savedChats = [newChat, ...savedChats]
