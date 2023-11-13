@@ -32,23 +32,51 @@ body {
     flex-grow: 1;
 }
 
+.logSpan {
+    display: flex;
+    flex-direction: row;
+    /* Allow the content to wrap onto the next line */
+}
+
+.logSpan p {
+    width: 85%;
+    white-space: normal;
+    padding-left: 4px;
+    padding-right: 4px;
+    resize: None;
+    color: #707070;
+    /* This can help keep the text and icon together */
+}
+
+.logSpan .fa-times {
+    width: 10%;
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-right: 4px;
+    visibility: hidden;
+    /* Keep the icon from breaking */
+}
+
+.logSpan.selected .fa-times {
+    width: 10%;
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-right: 4px;
+    visibility: visible;
+    /* Keep the icon from breaking */
+}
+
+.logSpan p:hover {
+    color: #FFFFFF;
+}
+
+.logSpan.selected p {
+    color: #FFFFFF;
+}
+
 #savedChats {
     overflow-y: auto;
     overflow-x: hidden;
-}
-
-#savedChats p {
-    padding-left: 4px;
-    resize: None;
-    color: #707070;
-}
-
-#savedChats p:hover {
-    color: #FFFFFF;
-}
-
-#savedChats p.selected {
-    color: #FFFFFF;
 }
 
 #chatHistory {

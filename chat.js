@@ -1,3 +1,4 @@
+const { log } = require('console');
 const fs = require('fs');
 const OpenAI = require('openai');
 let openAIKey = "";
@@ -26,7 +27,7 @@ try {
     settings = JSON.parse(settings);
     savedChats = fs.readFileSync('saved-chats.json', 'utf-8');
 
-    if (savedChats == "" || savedChats == []) {
+    if (savedChats == "" || savedChats == "[]") {
         savedChats = [newChat];
         fs.writeFileSync(savedPath, JSON.stringify(savedChats));
     } else {
@@ -81,9 +82,10 @@ function generateInnerHTMLFromMsgs(msgs) {
     return history
 }
 
-let allSavedChats = savedChatsElement.getElementsByTagName("p");
+let allSavedChats = savedChatsElement.getElementsByClassName("logSpan");
 function selectChat(index) {
-    selectedChat = index;
+    selectedChat = index; // this could be AFTER removing the class to not go over all
+    //savedChats = JSON.parse(fs.readFileSync('saved-chats.json', 'utf-8'));
     let chat = savedChats[index];
     messages = chat.messages;
     chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
@@ -95,25 +97,40 @@ function selectChat(index) {
 
 function updateSavedChatNames() {
     savedChatsElement.innerHTML = "";
-    var i = 0;
-    while (i < savedChats.length) {
-        let chat = savedChats[i];
-        if (i == selectedChat) {
+    //savedChats = JSON.parse(fs.readFileSync('saved-chats.json', 'utf-8'));
+    //console.log(`Right off: ${savedChats}`);
+    savedChats.forEach((chat, i) => {
+        if (i === selectedChat) {
+            console.log(i);
             messages = chat.messages;
             chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
-        }
-        let name = `<p>${chat.name}</p>`;
-        savedChatsElement.innerHTML += name;
-        i = i + 1;
-    }
+        };
 
-    allSavedChats = savedChatsElement.getElementsByTagName("p");
-    for (let i = 0; i < allSavedChats.length; i++) {
-        let chat = allSavedChats[i];
-        chat.addEventListener("click", function () {
+        let logSpan = document.createElement("span");
+        logSpan.className = "logSpan"; // Use class instead of id
+        let paragraph = document.createElement("p");
+        paragraph.textContent = chat.name;
+        logSpan.appendChild(paragraph);
+        let icon = document.createElement("i");
+        icon.classList.add("fas", "fa-times");
+        icon.style.color = "white";
+        icon.addEventListener("click", function () {
+            if (this.parentElement.classList.contains("selected") && savedChats.length > 1) {
+                savedChats.splice(selectedChat, 1);
+                fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
+                selectChat(0);
+                updateSavedChatNames();
+            }
+        });
+        logSpan.appendChild(icon);
+        paragraph.addEventListener("click", function () {
             selectChat(i);
         });
-    }
+        savedChatsElement.appendChild(logSpan);
+    });
+
+    // Use a class selector to apply the selected class to the correct element
+    let allSavedChats = document.querySelectorAll(".logSpan");
     allSavedChats[selectedChat].classList.add("selected");
 }
 updateSavedChatNames();
@@ -156,9 +173,8 @@ inputBox.addEventListener('keydown', async function (e) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
             messages.push({ "role": "assistant", "content": addedHistory });
 
-            console.log(allSavedChats[0].innerHTML)
-            if (allSavedChats[0].innerHTML === "New chat") {
-                allSavedChats[0].innerHTML = "";
+            if (allSavedChats[0].children[0].innerHTML === "New chat") {
+                allSavedChats[0].children[0].innerHTML = "";
                 const stream = await openai.chat.completions.create({
                     'model': "gpt-3.5-turbo",
                     'messages': [{
@@ -167,9 +183,9 @@ inputBox.addEventListener('keydown', async function (e) {
                     'stream': true,
                 });
                 for await (const part of stream) {
-                    allSavedChats[0].innerHTML += part.choices[0]?.delta?.content || '';
+                    allSavedChats[0].children[0].innerHTML += part.choices[0]?.delta?.content || '';
                 }
-                savedChats[0].name = allSavedChats[0].innerHTML;
+                savedChats[0].name = allSavedChats[0].children[0].innerHTML;
             }
             savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
             fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
