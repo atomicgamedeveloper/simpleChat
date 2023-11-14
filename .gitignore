@@ -1,4 +1,5 @@
 openai.txt
+settings.json
 saved-chats.json
 out/
 node_modules/
