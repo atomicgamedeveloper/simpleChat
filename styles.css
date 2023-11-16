@@ -16,11 +16,11 @@ body {
 }
 
 #leftContainer {
+    padding-top: 28px;
     display: flex;
     flex-direction: column;
     float: left;
     width: 20%;
-    padding-top: 10px;
     flex-grow: 1;
 }
 
@@ -43,6 +43,7 @@ body {
     white-space: normal;
     padding-left: 4px;
     padding-right: 4px;
+    margin-bottom: 12px;
     resize: None;
     color: #707070;
     /* This can help keep the text and icon together */
@@ -52,7 +53,7 @@ body {
     width: 10%;
     margin-top: auto;
     margin-bottom: auto;
-    margin-right: 4px;
+    margin-right: 2px;
     visibility: hidden;
     /* Keep the icon from breaking */
 }

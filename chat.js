@@ -178,8 +178,13 @@ inputBox.addEventListener('keydown', async function (e) {
                 const stream = await openai.chat.completions.create({
                     'model': "gpt-3.5-turbo",
                     'messages': [{
-                        "role": "user", "content": `Instruction: Name the chat from the last message\nChat: how to make pink cake\nName: Pink Cake Recipe\nChat: ${userMessage}\nName:`,
+                        "role": "user", "content": `Instruction: Name the chat from the last message\n
+Example chat: "how to make pink cake"\n
+Example title: Pink Cake Recipe\n
+Chat: "${userMessage}"\n
+Title:`,
                     }],
+                    'max_tokens': 10,
                     'stream': true,
                 });
                 for await (const part of stream) {
