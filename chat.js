@@ -158,6 +158,15 @@ inputBox.addEventListener('keydown', async function (e) {
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
             chatHistory.scrollTop = chatHistory.scrollHeight;
+            if (selectedChat != 0) {
+                let curChat = savedChats.splice(selectedChat, 1)[0];
+                if (savedChats[0].name == "New chat") {
+                    savedChats.splice(0, 1);
+                }
+                savedChats = [curChat, ...savedChats];
+                selectChat(0);
+                updateSavedChatNames();
+            }
             const stream = await openai.chat.completions.create({
                 'model': model.toLowerCase(),
                 'messages': [systemMessage, ...messages],
@@ -173,7 +182,7 @@ inputBox.addEventListener('keydown', async function (e) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
             messages.push({ "role": "assistant", "content": addedHistory });
 
-            if (allSavedChats[0].children[0].innerHTML === "New chat") {
+            if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
                 allSavedChats[0].children[0].innerHTML = "";
                 const stream = await openai.chat.completions.create({
                     'model': "gpt-3.5-turbo",
