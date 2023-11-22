@@ -203,3 +203,93 @@ td {
     background-color: #1F1F1F;
     border-collapse: collapse;
 }
+
+code {
+    font-family: 'Source Code Pro', monospace;
+    background-color: #282C34;
+    /* A soft dark background color */
+    color: #ABB2BF;
+    /* A light font color for contrast */
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 0.95em;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    /* Ensure code lines do not exceed their container width */
+    word-wrap: break-word;
+    overflow-x: scroll;
+    /* Ensures long lines of code can be scrolled through horizontally */
+}
+
+pre code {
+    display: block;
+    padding: 1em;
+    overflow-x: auto;
+    max-height: 300px;
+    /* Optional: limits the block height and adds a scrollbar */
+}
+
+/* Add a class for inline code snippets in text */
+.inline-code {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Example pseudo-classes for syntax highlighting */
+.keyword {
+    color: #C678DD;
+}
+
+.string {
+    color: #98C379;
+}
+
+.comment {
+    color: #5C6370;
+}
+
+.variable {
+    color: #E06C75;
+}
+
+.number {
+    color: #D19A66;
+}
+
+.function {
+    color: #61AFEF;
+}
+
+code,
+pre {
+    line-height: 1.5;
+    tab-size: 4;
+    /* Typically developers use a tab-size of 4 for readability */
+}
+
+.logSpan p:hover,
+.logSpan.selected p,
+#newButton:hover {
+    color: #FFFFFF;
+    transition: color 0.3s ease-in-out;
+}
+
+#newButton:hover {
+    background-color: #333333;
+    /* Slightly lighter to indicate interactivity */
+}
+
+/* Custom scrollbars for modern browsers */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1E1E1E;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 10px;
+    border: 3px solid #1E1E1E;
+}
