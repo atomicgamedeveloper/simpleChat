@@ -10,6 +10,8 @@ let newChat = {
     "messages": []
 };
 
+let isStreamingResponse = false;
+
 const savedPath = 'saved-chats.json'
 if (!fs.existsSync(savedPath)) {
     fs.writeFileSync(savedPath, JSON.stringify([newChat]));
@@ -153,6 +155,16 @@ function isScrolledToBottom(el) {
     return el.scrollHeight - el.clientHeight <= el.scrollTop + 50;
 }
 
+function swapNewAndStopButton() {
+    if (isStreamingResponse) {
+        isStreamingResponse = false;
+        newButton.innerHTML = "New chat";
+    } else {
+        isStreamingResponse = true;
+        newButton.innerHTML = "Stop Responding";
+    }
+}
+
 inputBox.addEventListener('keydown', async function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -178,12 +190,20 @@ inputBox.addEventListener('keydown', async function (e) {
             });
             const oldHistory = chatHistory.innerHTML;
             let addedHistory = "";
+            swapNewAndStopButton();
+            newButton.innerHTML = "Stop Responding";
             for await (const part of stream) {
+                if (!isStreamingResponse) {
+                    break;
+                }
                 addedHistory += part.choices[0]?.delta?.content || '';
                 chatHistory.innerHTML = oldHistory + `<p>Assistant: ${marked.parse(addedHistory)}</p>`;
                 if (isScrolledToBottom(chatHistory)) {
                     chatHistory.scrollTop = chatHistory.scrollHeight;
                 }
+            }
+            if (isStreamingResponse) {
+                swapNewAndStopButton();
             }
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -201,7 +221,7 @@ Example title: Pink Cake Recipe\n
 Chat: "${userMessage}"\n
 Title:`,
                     }],
-                    'max_tokens': 10,
+                    'max_tokens': 15,
                     'stream': true,
                 });
                 for await (const part of stream) {
@@ -216,6 +236,11 @@ Title:`,
 });
 
 newButton.addEventListener('click', function () {
+    if (isStreamingResponse) {
+        swapNewAndStopButton();
+        return
+    }
+
     if (savedChats[0].name != "New chat" && savedChats[selectedChat].messages != []) {
         console.log("Making a new chat.");
         newChat = {
