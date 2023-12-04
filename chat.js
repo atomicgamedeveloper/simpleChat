@@ -149,6 +149,10 @@ toggleSwitch.addEventListener("change", function () {
     };
 });
 
+function isScrolledToBottom(el) {
+    return el.scrollHeight - el.clientHeight <= el.scrollTop + 50;
+}
+
 inputBox.addEventListener('keydown', async function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -177,9 +181,13 @@ inputBox.addEventListener('keydown', async function (e) {
             for await (const part of stream) {
                 addedHistory += part.choices[0]?.delta?.content || '';
                 chatHistory.innerHTML = oldHistory + `<p>Assistant: ${marked.parse(addedHistory)}</p>`;
+                if (isScrolledToBottom(chatHistory)) {
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+            }
+            if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
-            chatHistory.scrollTop = chatHistory.scrollHeight;
             messages.push({ "role": "assistant", "content": addedHistory });
 
             if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
