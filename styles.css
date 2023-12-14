@@ -16,7 +16,6 @@ body {
 }
 
 #leftContainer {
-    padding-top: 28px;
     display: flex;
     flex-direction: column;
     float: left;
@@ -97,19 +96,34 @@ body {
     height: 100%;
     padding: 10px;
     box-sizing: border-box;
-    float: right;
+    float: left;
     background-color: #1F1F1F;
     color: #FFFFFF;
     resize: none;
 }
 
-#newButton {
+#sendButton {
     border: 1px solid #707070;
     width: 10%;
     height: 100%;
     padding: 0;
     resize: none;
     box-sizing: border-box;
+    background-color: #202020;
+    color: #FFFFFF;
+    text-align: center;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+#newChatButton {
+    border: 1px solid #707070;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    resize: none;
     background-color: #202020;
     color: #FFFFFF;
     text-align: center;
@@ -232,12 +246,12 @@ pre {
 
 .logSpan p:hover,
 .logSpan.selected p,
-#newButton:hover {
+#sendButton:hover {
     color: #FFFFFF;
     transition: color 0.2s ease-in-out;
 }
 
-#newButton:hover {
+#sendButton:hover {
     background-color: #333333;
 }
 

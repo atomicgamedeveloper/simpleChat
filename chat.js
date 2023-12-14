@@ -10,6 +10,16 @@ let newChat = {
     "messages": []
 };
 
+/*const renderer = new marked.Renderer();
+
+renderer.paragraph = function (text) {
+    return text + " ";
+};
+
+marked.setOptions({
+    renderer: renderer
+});
+*/
 let isStreamingResponse = false;
 
 const savedPath = 'saved-chats.json'
@@ -50,9 +60,12 @@ const openai = new OpenAI({
 
 var chatHistory = document.getElementById('chatHistory');
 var inputBox = document.getElementById('inputBox');
-var newButton = document.getElementById('newButton');
+var newChatButton = document.getElementById('newChatButton');
+var sendButton = document.getElementById('sendButton');
 var savedChatsElement = document.getElementById('savedChats');
 const toggleSwitch = document.getElementById("toggleSwitch");
+
+var stopReason = "init";
 
 if (settings["model"] == "GPT-3.5-turbo") {
     model = "GPT-3.5-turbo";
@@ -152,24 +165,28 @@ toggleSwitch.addEventListener("change", function () {
 });
 
 function isScrolledToBottom(el) {
-    return el.scrollHeight - el.clientHeight <= el.scrollTop + 50;
+    return el.scrollHeight - el.clientHeight <= el.scrollTop + 70;
 }
 
 function swapNewAndStopButton() {
     if (isStreamingResponse) {
         isStreamingResponse = false;
-        newButton.innerHTML = "New chat";
+        if (stopReason == null) {
+            sendButton.innerHTML = "Continue";
+        } else {
+            sendButton.innerHTML = "Send";
+        }
     } else {
         isStreamingResponse = true;
-        newButton.innerHTML = "Stop Responding";
+        sendButton.innerHTML = "Stop Responding";
     }
 }
 
-inputBox.addEventListener('keydown', async function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        var userMessage = inputBox.value;
-        if (userMessage) {
+async function sendMessage() {
+    var userMessage = inputBox.value;
+    if (userMessage || stopReason == null) {
+        let prefix = "";
+        if (stopReason != null) {
             chatHistory.innerHTML += `<p>User: ${marked.parse(userMessage)}</p>`;
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
@@ -183,64 +200,78 @@ inputBox.addEventListener('keydown', async function (e) {
                 selectChat(0);
                 updateSavedChatNames();
             }
-            const stream = await openai.chat.completions.create({
-                'model': model.toLowerCase(),
-                'messages': [systemMessage, ...messages],
-                'stream': true,
-            });
-            const oldHistory = chatHistory.innerHTML;
-            let addedHistory = "";
+            prefix = "<p>Assistant:";
+        }
+        var messagesToGPT = [systemMessage, ...messages]
+        var oldHistory = chatHistory.innerHTML;
+        if (prefix == "") {
+            oldHistory = oldHistory.substr(0, oldHistory.length - 4);
+            messagesToGPT.push({ "role": "system", "content": "Continue from where your last message ended abruptly." });
+        }
+        let addedHistory = "";
+        if (!isStreamingResponse) {
             swapNewAndStopButton();
-            newButton.innerHTML = "Stop Responding";
-            for await (const part of stream) {
-                if (!isStreamingResponse) {
-                    break;
-                }
-                addedHistory += part.choices[0]?.delta?.content || '';
-                chatHistory.innerHTML = oldHistory + `<p>Assistant: ${marked.parse(addedHistory)}</p>`;
-                if (isScrolledToBottom(chatHistory)) {
-                    chatHistory.scrollTop = chatHistory.scrollHeight;
-                }
+        }
+        const stream = await openai.chat.completions.create({
+            'model': model.toLowerCase(),
+            'messages': messagesToGPT,
+            'stream': true,
+        });
+        for await (const part of stream) {
+            if (!isStreamingResponse) {
+                break;
             }
-            if (isStreamingResponse) {
-                swapNewAndStopButton();
-            }
+            addedHistory += part.choices[0]?.delta?.content || '';
+            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p>`;
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
-            messages.push({ "role": "assistant", "content": addedHistory });
+            stopReason = part.choices[0].finish_reason;
+        }
+        if (isStreamingResponse) {
+            swapNewAndStopButton();
+        }
+        if (isScrolledToBottom(chatHistory)) {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+        messages.push({ "role": "assistant", "content": addedHistory });
 
-            if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
-                allSavedChats[0].children[0].innerHTML = "";
-                const stream = await openai.chat.completions.create({
-                    'model': "gpt-3.5-turbo",
-                    'messages': [{
-                        "role": "user", "content": `Instruction: Name the chat from the last message\n
+        if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
+            allSavedChats[0].children[0].innerHTML = "";
+            const stream = await openai.chat.completions.create({
+                'model': "gpt-3.5-turbo",
+                'messages': [{
+                    "role": "user", "content": `Instruction: Name the chat from the last message\n
 Example chat: "how to make pink cake"\n
 Example title: Pink Cake Recipe\n
 Chat: "${userMessage}"\n
 Title:`,
-                    }],
-                    'max_tokens': 15,
-                    'stream': true,
-                });
-                for await (const part of stream) {
-                    allSavedChats[0].children[0].innerHTML += part.choices[0]?.delta?.content || '';
-                }
-                savedChats[0].name = allSavedChats[0].children[0].innerHTML;
+                }],
+                'max_tokens': 15,
+                'stream': true,
+            });
+            for await (const part of stream) {
+                allSavedChats[0].children[0].innerHTML += part.choices[0]?.delta?.content || '';
             }
-            savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
-            fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
+            savedChats[0].name = allSavedChats[0].children[0].innerHTML;
         }
+        savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
+        fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
+    }
+}
+
+inputBox.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        stopReason = "init";
+        if (isStreamingResponse) {
+            swapNewAndStopButton();
+        }
+        sendMessage();
     }
 });
 
-newButton.addEventListener('click', function () {
-    if (isStreamingResponse) {
-        swapNewAndStopButton();
-        return
-    }
-
+newChatButton.addEventListener('click', function () {
     if (savedChats[0].name != "New chat" && savedChats[selectedChat].messages != []) {
         console.log("Making a new chat.");
         newChat = {
@@ -255,7 +286,14 @@ newButton.addEventListener('click', function () {
         updateSavedChatNames();
     } else {
         selectedChat = 0;
-        console.log("No need for a new chat.");
         updateSavedChatNames();
     }
+});
+
+sendButton.addEventListener('click', function () {
+    if (isStreamingResponse) {
+        swapNewAndStopButton();
+        return
+    }
+    sendMessage();
 });
