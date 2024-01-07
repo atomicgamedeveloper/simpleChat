@@ -1,6 +1,7 @@
 const { log } = require('console');
 const fs = require('fs');
 const OpenAI = require('openai');
+const tiktoken = require("tiktoken");
 let openAIKey = "";
 let settings = "";
 let savedChats = "";
@@ -67,8 +68,8 @@ const toggleSwitch = document.getElementById("toggleSwitch");
 
 var stopReason = "init";
 
-if (settings["model"] == "GPT-3.5-turbo") {
-    model = "GPT-3.5-turbo";
+if (settings["model"] == "GPT-3.5-turbo-1106") {
+    model = "GPT-3.5-turbo-1106";
     toggleSwitch.checked = false;
 } else {
     model = "GPT-4-1106-preview";
@@ -86,6 +87,11 @@ const systemMessage = {
 
 let messages = [];
 let selectedChat = 0;
+
+const modelContext = {
+    "GPT-3.5-turbo-1106": 16385,
+    "GPT-4-1106-preview": 128000,
+};
 
 function generateInnerHTMLFromMsgs(msgs) {
     var history = ""
@@ -151,14 +157,14 @@ function updateSavedChatNames() {
 updateSavedChatNames();
 
 toggleSwitch.addEventListener("change", function () {
-    if (model === "GPT-3.5-turbo") {
+    if (model === "GPT-3.5-turbo-1106") {
         console.log("GPT-4-1106-preview");
         model = 'GPT-4-1106-preview';
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     } else {
-        console.log("GPT-3.5-turbo");
-        model = 'GPT-3.5-turbo';
+        console.log("GPT-3.5-turbo-1106");
+        model = 'GPT-3.5-turbo-1106';
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     };
@@ -182,6 +188,38 @@ function swapNewAndStopButton() {
     }
 }
 
+function numTokensFromMessages(messages, model = "gpt-3.5-turbo-0613") {
+    let encoding;
+
+    try {
+        encoding = tiktoken.encoding_for_model(model);
+    } catch (e) {
+        if (e.message === "NotImplementedError") {
+            encoding = tiktoken.get_encoding("cl100k_base");
+        } else {
+            throw e; // Propagate other potential errors
+        }
+    }
+
+    if (model === "gpt-3.5-turbo-0613") {
+        let numTokens = 0;
+        messages.forEach((message) => {
+            numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
+            for (const [key, value] of Object.entries(message)) {
+                numTokens += encoding.encode(value).length;
+                if (key === "name") {
+                    numTokens -= 1; // role is always required and always 1 token
+                }
+            }
+        });
+        numTokens += 2; // every reply is primed with <im_start>assistant
+        return numTokens;
+    } else {
+        throw new Error(`numTokensFromMessages() is not presently implemented for model ${model}.
+Visit https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.`);
+    }
+}
+
 async function sendMessage() {
     var userMessage = inputBox.value;
     if (userMessage || stopReason == null) {
@@ -202,7 +240,15 @@ async function sendMessage() {
             }
             prefix = "<p>Assistant:";
         }
+
         var messagesToGPT = [systemMessage, ...messages]
+        tokens = numTokensFromMessages(messagesToGPT);
+        if (numTokensFromMessages(messagesToGPT) > modelContext[model]) {
+            while (numTokensFromMessages(messagesToGPT) > modelContext[model]) {
+                console.log(`Removed this:\n${messagesToGPT.splice(1, 2)}`);
+            }
+        }
+
         var oldHistory = chatHistory.innerHTML;
         if (prefix == "") {
             oldHistory = oldHistory.substr(0, oldHistory.length - 4);
@@ -234,12 +280,13 @@ async function sendMessage() {
         if (isScrolledToBottom(chatHistory)) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
+
         messages.push({ "role": "assistant", "content": addedHistory });
 
         if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
             allSavedChats[0].children[0].innerHTML = "";
             const stream = await openai.chat.completions.create({
-                'model': "gpt-3.5-turbo",
+                'model': "gpt-3.5-turbo-1106",
                 'messages': [{
                     "role": "user", "content": `Instruction: Name the chat from the last message\n
 Example chat: "how to make pink cake"\n
