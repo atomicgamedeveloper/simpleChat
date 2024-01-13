@@ -5,7 +5,6 @@ body {
     font-family: Arial, sans-serif;
     background-color: #000000;
     color: #FFFFFF;
-    overflow: auto;
 }
 
 #container {
@@ -18,17 +17,15 @@ body {
 #leftContainer {
     display: flex;
     flex-direction: column;
-    float: left;
+    justify-content: space-between;
+    height: 100%;
     width: 20%;
-    flex-grow: 1;
 }
 
 #rightContainer {
     display: flex;
     flex-direction: column;
-    float: right;
     width: 80%;
-    flex-grow: 1;
 }
 
 .logSpan {
@@ -120,15 +117,13 @@ body {
 
 #newChatButton {
     border: 1px solid #707070;
-    height: 52px;
-    min-height: 52px;
     padding: 0;
-    resize: none;
     background-color: #202020;
     color: #FFFFFF;
     text-align: center;
     cursor: pointer;
-    vertical-align: middle;
+    height: 52px;
+    box-sizing: border-box;
 }
 
 #modelSwitch {
