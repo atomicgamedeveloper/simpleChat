@@ -11,16 +11,7 @@ let newChat = {
     "messages": []
 };
 
-/*const renderer = new marked.Renderer();
-
-renderer.paragraph = function (text) {
-    return text + " ";
-};
-
-marked.setOptions({
-    renderer: renderer
-});
-*/
+let contextStart = 0;
 let isStreamingResponse = false;
 
 const savedPath = 'saved-chats.json'
@@ -95,20 +86,27 @@ const modelContext = {
 
 function generateInnerHTMLFromMsgs(msgs) {
     var history = ""
-    msgs.forEach(message => {
+    msgs.forEach((message, index) => {
         var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
         var content = message.content;
-        history += `<p>${role}:${marked.parse(content)}</p>`;
+        history += `<p>${index}: ${role}:${marked.parse(content)}</p>`;
     })
-    return history
+    return history;
+}
+
+function updateMessageStyles() {
+    return
 }
 
 let allSavedChats = savedChatsElement.getElementsByClassName("logSpan");
 function selectChat(index) {
-    selectedChat = index; // this could be AFTER removing the class to not go over all
-    //savedChats = JSON.parse(fs.readFileSync('saved-chats.json', 'utf-8'));
+    if (selectedChat == index) {
+        return;
+    }
+    selectedChat = index;
     let chat = savedChats[index];
     messages = chat.messages;
+    contextStart = 0;
     chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
     for (var i = 0; i < allSavedChats.length; i++) {
         allSavedChats[i].classList.remove('selected');
@@ -118,8 +116,6 @@ function selectChat(index) {
 
 function updateSavedChatNames() {
     savedChatsElement.innerHTML = "";
-    //savedChats = JSON.parse(fs.readFileSync('saved-chats.json', 'utf-8'));
-    //console.log(`Right off: ${savedChats}`);
     savedChats.forEach((chat, i) => {
         if (i === selectedChat) {
             console.log(i);
@@ -128,7 +124,7 @@ function updateSavedChatNames() {
         };
 
         let logSpan = document.createElement("span");
-        logSpan.className = "logSpan"; // Use class instead of id
+        logSpan.className = "logSpan";
         let paragraph = document.createElement("p");
         paragraph.textContent = chat.name;
         logSpan.appendChild(paragraph);
@@ -241,18 +237,20 @@ async function sendMessage() {
             prefix = "<p>Assistant:";
         }
 
-        var messagesToGPT = [systemMessage, ...messages]
-        tokens = numTokensFromMessages(messagesToGPT);
-        if (numTokensFromMessages(messagesToGPT) > modelContext[model]) {
-            while (numTokensFromMessages(messagesToGPT) > modelContext[model]) {
-                console.log(`Removed this:\n${messagesToGPT.splice(1, 2)}`);
-            }
+        var context = [systemMessage, ...messages.slice(contextStart)]
+        const expectedMaxResponseLength = 500;
+        tokens = numTokensFromMessages(context);
+        while (context.length > 1 && numTokensFromMessages(context)+expectedMaxResponseLength > modelContext[model]) {
+            console.log("Context shortened by 1 message.");
+            contextStart += 1;
+            context = [systemMessage, ...messages.slice(contextStart)]
         }
+        updateMessageStyles();
 
         var oldHistory = chatHistory.innerHTML;
         if (prefix == "") {
             oldHistory = oldHistory.substr(0, oldHistory.length - 4);
-            messagesToGPT.push({ "role": "system", "content": "Continue from where your last message ended abruptly." });
+            context.push({ "role": "system", "content": "Continue from where your last message ended abruptly." });
         }
         let addedHistory = "";
         if (!isStreamingResponse) {
@@ -260,7 +258,7 @@ async function sendMessage() {
         }
         const stream = await openai.chat.completions.create({
             'model': model.toLowerCase(),
-            'messages': messagesToGPT,
+            'messages': context,
             'stream': true,
         });
         for await (const part of stream) {
@@ -303,6 +301,8 @@ Title:`,
         }
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
+        console.log("Token count:")
+        console.log(numTokensFromMessages(messages.slice(contextStart)))
     }
 }
 
@@ -333,12 +333,12 @@ newChatButton.addEventListener('click', function () {
         savedChats = [newChat, ...savedChats]
         inputBox.value = "";
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
-        selectedChat = 0;
-        updateSavedChatNames();
-    } else {
-        selectedChat = 0;
-        updateSavedChatNames();
     }
+    if (selectedChat != 0) {
+        contextStart = 0;
+    }
+    selectedChat = 0;
+    updateSavedChatNames();
 });
 
 sendButton.addEventListener('click', function () {
