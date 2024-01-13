@@ -274,13 +274,12 @@ async function sendMessage() {
             }
             stopReason = part.choices[0].finish_reason;
         }
-        if (isStreamingResponse) {
-            swapNewAndStopButton();
-        }
         if (isScrolledToBottom(chatHistory)) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
-
+        if (isStreamingResponse) {
+            swapNewAndStopButton();
+        }
         messages.push({ "role": "assistant", "content": addedHistory });
 
         if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
@@ -319,8 +318,13 @@ inputBox.addEventListener('keydown', function (e) {
 });
 
 newChatButton.addEventListener('click', function () {
-    if (savedChats[0].name != "New chat" && savedChats[selectedChat].messages != []) {
-        console.log("Making a new chat.");
+    if (isStreamingResponse) {
+        isStreamingResponse = false;
+        sendButton.innerHTML = "Send";
+        stopReason = "new chat";
+        return;
+    }
+    if (savedChats[0].messages.length != 0) {
         newChat = {
             "name": "New chat",
             "messages": []
