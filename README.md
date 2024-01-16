@@ -12,7 +12,7 @@ Welcome to this project meant to save on ChatGPT expenses by utilising the API. 
 ![image](https://github.com/atomicgamedeveloper/simpleChat/assets/109801255/20979113-c6f6-45ae-b0ab-ad0c7ca89fd1)
 
 ## How to run it
-- Clone it
-- Download Nodejs
-- Install electron by running this command in the folder: npm install ``--save-dev electron``
+- Clone the project
+- Download and install Nodejs: https://nodejs.org/en/download/
+- Install electron by running this command in the folder: ``npm install --save-dev electron``
 - Finally add a text file with your API key called openai.txt in the main folder, then you can run it with: ``npm start``
