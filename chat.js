@@ -89,7 +89,7 @@ function generateInnerHTMLFromMsgs(msgs) {
     msgs.forEach((message, index) => {
         var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
         var content = message.content;
-        history += `<p>${index}: ${role}:${marked.parse(content)}</p>`;
+        history += `<div class="chatMessage"><p>${role}:${marked.parse(content)}</p></div>`;
     })
     return history;
 }
@@ -221,7 +221,7 @@ async function sendMessage() {
     if (userMessage || stopReason == null) {
         let prefix = "";
         if (stopReason != null) {
-            chatHistory.innerHTML += `<p>User: ${marked.parse(userMessage)}</p>`;
+            chatHistory.innerHTML += `<div class="chatMessage"><p>User: ${marked.parse(userMessage)}</p></div>`;
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -234,13 +234,13 @@ async function sendMessage() {
                 selectChat(0);
                 updateSavedChatNames();
             }
-            prefix = "<p>Assistant:";
+            prefix += "<div class=\"chatMessage\"><p>Assistant:";
         }
 
         var context = [systemMessage, ...messages.slice(contextStart)]
         const expectedMaxResponseLength = 500;
         tokens = numTokensFromMessages(context);
-        while (context.length > 1 && numTokensFromMessages(context)+expectedMaxResponseLength > modelContext[model]) {
+        while (context.length > 1 && numTokensFromMessages(context) + expectedMaxResponseLength > modelContext[model]) {
             console.log("Context shortened by 1 message.");
             contextStart += 1;
             context = [systemMessage, ...messages.slice(contextStart)]
@@ -266,7 +266,7 @@ async function sendMessage() {
                 break;
             }
             addedHistory += part.choices[0]?.delta?.content || '';
-            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p>`;
+            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p></div>`;
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
@@ -309,11 +309,10 @@ Title:`,
 inputBox.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        stopReason = "init";
-        if (isStreamingResponse) {
-            swapNewAndStopButton();
+        if (!isStreamingResponse) {
+            stopReason = "init";
+            sendMessage();
         }
-        sendMessage();
     }
 });
 

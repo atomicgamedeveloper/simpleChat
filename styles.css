@@ -133,6 +133,7 @@ body {
     text-align: center;
     cursor: pointer;
     height: 52px;
+    min-height: 52px;
     box-sizing: border-box;
 }
 
