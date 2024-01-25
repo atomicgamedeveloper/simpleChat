@@ -1,6 +1,8 @@
 # simpleChat, a ChatGPT clone
 Welcome to this project meant to save on ChatGPT expenses by utilising the API. Paying what you use.
 
+![image](https://github.com/atomicgamedeveloper/simpleChat/assets/109801255/20979113-c6f6-45ae-b0ab-ad0c7ca89fd1)
+
 ## Features
 - Switch between ``GPT 3.5 Turbo`` and ``GPT 4.1 Turbo``
 - Locally saved chats
@@ -8,9 +10,6 @@ Welcome to this project meant to save on ChatGPT expenses by utilising the API. 
 - Stop responding / Continue button
 - Named chats like the interface
 - Code blocks
-
-## Screenshot
-![image](https://github.com/atomicgamedeveloper/simpleChat/assets/109801255/20979113-c6f6-45ae-b0ab-ad0c7ca89fd1)
 
 ## How to install on Windows using release package 
 - Download and extract [simpleChat-v1.0.0-pre.zip](https://github.com/atomicgamedeveloper/simpleChat/releases/tag/Pre-release)
