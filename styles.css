@@ -72,12 +72,6 @@ body {
     overflow-x: hidden;
 }
 
-#chatHistory .message {
-    padding: 5px;
-    margin-bottom: 2px;
-    color: white;
-}
-
 #chatHistory {
     padding: 25px;
     border: 1px solid #707070;
@@ -89,8 +83,12 @@ body {
     resize: vertical;
 }
 
-#chatHistory .outside-context {
-    opacity: 0.6;
+#chatHistory .insideContext {
+    opacity: 1;
+}
+
+#chatHistory .outsideContext {
+    opacity: 0.3;
 }
 
 #userInterface {

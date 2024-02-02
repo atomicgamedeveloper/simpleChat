@@ -89,7 +89,8 @@ function generateInnerHTMLFromMsgs(msgs) {
     msgs.forEach((message, index) => {
         var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
         var content = message.content;
-        history += `<div class="chatMessage"><p>${role}:${marked.parse(content)}</p></div>`;
+        var partOfContext = (true/*index >= contextEnd*/) ? `insideContext` : `outsideContext`
+        history += `<div class="chatMessage ${partOfContext}"><p>${role}:${marked.parse(content)}</p></div>`;
     })
     return history;
 }
@@ -146,7 +147,6 @@ function updateSavedChatNames() {
         savedChatsElement.appendChild(logSpan);
     });
 
-    // Use a class selector to apply the selected class to the correct element
     let allSavedChats = document.querySelectorAll(".logSpan");
     allSavedChats[selectedChat].classList.add("selected");
 }
@@ -221,7 +221,7 @@ async function sendMessage() {
     if (userMessage || stopReason == null) {
         let prefix = "";
         if (stopReason != null) {
-            chatHistory.innerHTML += `<div class="chatMessage"><p>User: ${marked.parse(userMessage)}</p></div>`;
+            chatHistory.innerHTML += `<div class="chatMessage insideContext"><p>User: ${marked.parse(userMessage)}</p></div>`;
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -234,7 +234,7 @@ async function sendMessage() {
                 selectChat(0);
                 updateSavedChatNames();
             }
-            prefix += "<div class=\"chatMessage\"><p>Assistant:";
+            prefix += `<div class="chatMessage insideContext"><p>Assistant:`;
         }
 
         var context = [systemMessage, ...messages.slice(contextStart)]
@@ -250,17 +250,19 @@ async function sendMessage() {
         var oldHistory = chatHistory.innerHTML;
         if (prefix == "") {
             oldHistory = oldHistory.substr(0, oldHistory.length - 4);
-            context.push({ "role": "system", "content": "Continue from where your last message ended abruptly." });
+            context.push({ "role": "system", "content": "Continue, by the character, from where your last message abruptly ended." });
         }
         let addedHistory = "";
         if (!isStreamingResponse) {
             swapNewAndStopButton();
         }
+
         const stream = await openai.chat.completions.create({
             'model': model.toLowerCase(),
             'messages': context,
             'stream': true,
         });
+
         for await (const part of stream) {
             if (!isStreamingResponse) {
                 break;
@@ -272,6 +274,7 @@ async function sendMessage() {
             }
             stopReason = part.choices[0].finish_reason;
         }
+
         if (isScrolledToBottom(chatHistory)) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
@@ -301,8 +304,6 @@ Title:`,
         }
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
-        console.log("Token count:")
-        console.log(numTokensFromMessages(messages.slice(contextStart)))
     }
 }
 
