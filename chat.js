@@ -1,7 +1,6 @@
 const { log } = require('console');
 const fs = require('fs');
 const OpenAI = require('openai');
-const tiktoken = require("tiktoken");
 let openAIKey = "";
 let settings = "";
 let savedChats = "";
@@ -11,7 +10,6 @@ let newChat = {
     "messages": []
 };
 
-let contextStart = 0;
 let isStreamingResponse = false;
 
 const savedPath = 'saved-chats.json'
@@ -19,8 +17,11 @@ if (!fs.existsSync(savedPath)) {
     fs.writeFileSync(savedPath, JSON.stringify([newChat]));
 }
 
+const gpt4 = "gpt-4-turbo-preview"
+const gpt3 = 'gpt-3.5-turbo-0125'
+
 const settingsPath = 'settings.json'
-let newSettings = { "model": "GPT-4-1106-preview" }
+let newSettings = { "model": gpt4 }
 if (!fs.existsSync(settingsPath)) {
     fs.writeFileSync(settingsPath, JSON.stringify(newSettings));
 }
@@ -59,16 +60,16 @@ const toggleSwitch = document.getElementById("toggleSwitch");
 
 var stopReason = "init";
 
-if (settings["model"] == "GPT-3.5-turbo-1106") {
-    model = "GPT-3.5-turbo-1106";
+if (settings["model"] == gpt3) {
+    model = gpt3;
     toggleSwitch.checked = false;
 } else {
-    model = "GPT-4-1106-preview";
+    model = gpt4;
     toggleSwitch.checked = true;
 }
 let currentDate = new Date();
 let year = currentDate.getFullYear();
-let month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding 1 because getMonth() is zero-based
+let month = String(currentDate.getMonth() + 1).padStart(2, '0');
 let day = String(currentDate.getDate()).padStart(2, '0');
 
 const systemMessage = {
@@ -79,11 +80,6 @@ const systemMessage = {
 let messages = [];
 let selectedChat = 0;
 
-const modelContext = {
-    "GPT-3.5-turbo-1106": 16385,
-    "GPT-4-1106-preview": 128000,
-};
-
 function generateInnerHTMLFromMsgs(msgs) {
     var history = ""
     msgs.forEach((message, index) => {
@@ -93,10 +89,6 @@ function generateInnerHTMLFromMsgs(msgs) {
         history += `<div class="chatMessage ${partOfContext}"><p>${role}:${marked.parse(content)}</p></div>`;
     })
     return history;
-}
-
-function updateMessageStyles() {
-    return
 }
 
 let allSavedChats = savedChatsElement.getElementsByClassName("logSpan");
@@ -119,7 +111,6 @@ function updateSavedChatNames() {
     savedChatsElement.innerHTML = "";
     savedChats.forEach((chat, i) => {
         if (i === selectedChat) {
-            console.log(i);
             messages = chat.messages;
             chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
         };
@@ -153,14 +144,12 @@ function updateSavedChatNames() {
 updateSavedChatNames();
 
 toggleSwitch.addEventListener("change", function () {
-    if (model === "GPT-3.5-turbo-1106") {
-        console.log("GPT-4-1106-preview");
-        model = 'GPT-4-1106-preview';
+    if (model === gpt3) {
+        model = gpt4;
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     } else {
-        console.log("GPT-3.5-turbo-1106");
-        model = 'GPT-3.5-turbo-1106';
+        model = gpt3;
         settings["model"] = model
         fs.writeFileSync("settings.json", JSON.stringify(settings));
     };
@@ -181,38 +170,6 @@ function swapNewAndStopButton() {
     } else {
         isStreamingResponse = true;
         sendButton.innerHTML = "Stop Responding";
-    }
-}
-
-function numTokensFromMessages(messages, model = "gpt-3.5-turbo-0613") {
-    let encoding;
-
-    try {
-        encoding = tiktoken.encoding_for_model(model);
-    } catch (e) {
-        if (e.message === "NotImplementedError") {
-            encoding = tiktoken.get_encoding("cl100k_base");
-        } else {
-            throw e; // Propagate other potential errors
-        }
-    }
-
-    if (model === "gpt-3.5-turbo-0613") {
-        let numTokens = 0;
-        messages.forEach((message) => {
-            numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
-            for (const [key, value] of Object.entries(message)) {
-                numTokens += encoding.encode(value).length;
-                if (key === "name") {
-                    numTokens -= 1; // role is always required and always 1 token
-                }
-            }
-        });
-        numTokens += 2; // every reply is primed with <im_start>assistant
-        return numTokens;
-    } else {
-        throw new Error(`numTokensFromMessages() is not presently implemented for model ${model}.
-Visit https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.`);
     }
 }
 
@@ -237,20 +194,12 @@ async function sendMessage() {
             prefix += `<div class="chatMessage insideContext"><p>Assistant:`;
         }
 
-        var context = [systemMessage, ...messages.slice(contextStart)]
-        const expectedMaxResponseLength = 500;
-        tokens = numTokensFromMessages(context);
-        while (context.length > 1 && numTokensFromMessages(context) + expectedMaxResponseLength > modelContext[model]) {
-            console.log("Context shortened by 1 message.");
-            contextStart += 1;
-            context = [systemMessage, ...messages.slice(contextStart)]
-        }
-        updateMessageStyles();
+        var context = [systemMessage, ...messages]
 
         var oldHistory = chatHistory.innerHTML;
         if (prefix == "") {
             oldHistory = oldHistory.substr(0, oldHistory.length - 4);
-            context.push({ "role": "system", "content": "Continue, by the character, from where your last message abruptly ended." });
+            context.push({ "role": "system", "content": "Continue from where your last message abruptly ended." });
         }
         let addedHistory = "";
         if (!isStreamingResponse) {
@@ -278,9 +227,11 @@ async function sendMessage() {
         if (isScrolledToBottom(chatHistory)) {
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
+
         if (isStreamingResponse) {
             swapNewAndStopButton();
         }
+
         messages.push({ "role": "assistant", "content": addedHistory });
 
         if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
@@ -302,6 +253,7 @@ Title:`,
             }
             savedChats[0].name = allSavedChats[0].children[0].innerHTML;
         }
+
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
     }
@@ -329,7 +281,6 @@ newChatButton.addEventListener('click', function () {
             "name": "New chat",
             "messages": []
         };
-        console.log(newChat)
         savedChats = [newChat, ...savedChats]
         inputBox.value = "";
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
