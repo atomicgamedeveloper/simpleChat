@@ -80,6 +80,14 @@ const systemMessage = {
 let messages = [];
 let selectedChat = 0;
 
+const renderer = new marked.Renderer();
+renderer.paragraph = function (text) {
+    return text;
+};
+marked.setOptions({
+    renderer: renderer
+});
+
 function generateInnerHTMLFromMsgs(msgs) {
     var fragment = document.createDocumentFragment();
 
@@ -212,15 +220,18 @@ function swapNewAndStopButton() {
 
 async function sendMessage() {
     var userMessage = inputBox.value;
-    if (userMessage || stopReason == null) {
-        let prefix = "";
-        if (stopReason != null) {
-            let logSpan = document.createElement("span");
-            logSpan.className = "chatMessage insideContext";
-            let paragraph = document.createElement("p");
-            paragraph.textContent = marked.parse(userMessage);
-            logSpan.appendChild(paragraph);
-            chatHistory.appendChild(logSpan);
+    var userStoppedReply = stopReason == null;
+    if (userMessage || userStoppedReply) {
+        if (!userStoppedReply) {
+            let userSpan = document.createElement("span");
+            userSpan.className = "chatMessage insideContext";
+            let userName = document.createElement("p");
+            userName.innerHTML = "User:\n"
+            userSpan.appendChild(userName);
+            let userParagraph = document.createElement("p");
+            userParagraph.innerHTML = marked.parse(userMessage);
+            userSpan.appendChild(userParagraph);
+            chatHistory.appendChild(userSpan);
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -233,14 +244,48 @@ async function sendMessage() {
                 selectChat(0);
                 updateSavedChatNames();
             }
-            prefix += `<span class="chatMessage insideContext"><p>Assistant:`;
+
+            let assistantSpan = document.createElement("span");
+            assistantSpan.className = "chatMessage insideContext";
+
+            let assistantName = document.createElement("p");
+            assistantName.innerHTML = "Assistant:\n";
+            userSpan.appendChild(assistantName);
+
+            let assistantParagraph = document.createElement("p");
+            assistantParagraph.innerHTML = "";
+            assistantSpan.appendChild(assistantParagraph);
+
+            chatHistory.appendChild(assistantSpan);
+            let listenIcon = document.createElement("i");
+            listenIcon.classList.add("fas", "fa-headphones");
+            listenIcon.style.float = "right";
+            listenIcon.style.marginLeft = "10px";
+
+            assistantSpan.addEventListener("mouseover", function () {
+                listenIcon.style.opacity = 1;
+            });
+
+            assistantSpan.addEventListener("mouseleave", function () {
+                listenIcon.style.opacity = 0;
+            });
+            assistantSpan.appendChild(listenIcon)
+
+            /*
+            assistantSpan.addEventListener("click",function () {
+                return;
+            });*/
+            // += `<span class="chatMessage insideContext"><p>Assistant:`;
         }
 
         var context = [systemMessage, ...messages]
 
-        var oldHistory = chatHistory.innerHTML;
-        if (prefix == "") {
-            oldHistory = oldHistory.substr(0, oldHistory.length - 4);
+        //var oldHistory = chatHistory.innerHTML;
+        let oldHistory = chatHistory.getElementsByTagName("p");
+        let lastAssistantParagraph = oldHistory[oldHistory.length - 1];
+        let oldAssistantParagraph = lastAssistantParagraph.innerHTML;
+        if (userStoppedReply) {
+            //oldHistory = oldHistory.substr(0, oldHistory.length - 4);
             context.push({ "role": "system", "content": "Continue from where your last message abruptly ended." });
         }
         let addedHistory = "";
@@ -259,7 +304,7 @@ async function sendMessage() {
                 break;
             }
             addedHistory += part.choices[0]?.delta?.content || '';
-            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p></span>`;
+            lastAssistantParagraph.innerHTML = oldAssistantParagraph + marked.parse(addedHistory);
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
@@ -298,6 +343,21 @@ Title:`,
 
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
+
+        let allListenIcons = document.getElementsByTagName("i");
+        let lastListenIcon = allListenIcons[allListenIcons.length - 1];
+        lastListenIcon.addEventListener("click", function () {
+            readAloud(lastAssistantParagraph.innerText);
+        });
+
+        assistantSpan.addEventListener("mouseover", function () {
+            listenIcon.style.opacity = 1;
+        });
+
+        assistantSpan.addEventListener("mouseleave", function () {
+            listenIcon.style.opacity = 0;
+        });
+        assistantSpan.appendChild(listenIcon)
     }
 };
 
