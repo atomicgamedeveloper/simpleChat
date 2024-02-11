@@ -114,7 +114,7 @@ function generateInnerHTMLFromMsgs(msgs) {
             });
 
             messageSpan.addEventListener('mouseleave', function () {
-                icon.style.opacity = 0.1;
+                icon.style.opacity = 0;
             });
 
             icon.addEventListener('click', function () {
@@ -270,22 +270,15 @@ async function sendMessage() {
                 listenIcon.style.opacity = 0;
             });
             assistantSpan.appendChild(listenIcon)
-
-            /*
-            assistantSpan.addEventListener("click",function () {
-                return;
-            });*/
-            // += `<span class="chatMessage insideContext"><p>Assistant:`;
         }
+        chatHistory.scrollTop = chatHistory.scrollHeight;
 
         var context = [systemMessage, ...messages]
 
-        //var oldHistory = chatHistory.innerHTML;
         let oldHistory = chatHistory.getElementsByTagName("p");
         let lastAssistantParagraph = oldHistory[oldHistory.length - 1];
         let oldAssistantParagraph = lastAssistantParagraph.innerHTML;
         if (userStoppedReply) {
-            //oldHistory = oldHistory.substr(0, oldHistory.length - 4);
             context.push({ "role": "system", "content": "Continue from where your last message abruptly ended." });
         }
         let addedHistory = "";
