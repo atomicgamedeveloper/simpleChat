@@ -88,12 +88,12 @@ function generateInnerHTMLFromMsgs(msgs) {
         var content = message.content;
         var partOfContext = 'insideContext';
 
-        var messageDiv = document.createElement('div');
-        messageDiv.className = `chatMessage ${partOfContext}`;
+        var messageSpan = document.createElement('span');
+        messageSpan.className = `chatMessage ${partOfContext}`;
 
         var paragraph = document.createElement('p');
         paragraph.innerHTML = `${role}: ${marked.parse(content)}`;
-        messageDiv.appendChild(paragraph);
+        messageSpan.appendChild(paragraph);
 
         if (role == 'Assistant') {
             var icon = document.createElement('i');
@@ -101,11 +101,11 @@ function generateInnerHTMLFromMsgs(msgs) {
             icon.style.float = 'right';
             icon.style.marginLeft = '10px';
 
-            messageDiv.addEventListener('mouseenter', function () {
+            messageSpan.addEventListener('mouseenter', function () {
                 icon.style.opacity = 1;
             });
 
-            messageDiv.addEventListener('mouseleave', function () {
+            messageSpan.addEventListener('mouseleave', function () {
                 icon.style.opacity = 0.1;
             });
 
@@ -113,11 +113,11 @@ function generateInnerHTMLFromMsgs(msgs) {
                 readAloud(content);
             });
 
-            messageDiv.appendChild(icon);
+            messageSpan.appendChild(icon);
             icon.style.opacity = 0.1;
         }
 
-        fragment.appendChild(messageDiv);
+        fragment.appendChild(messageSpan);
     });
 
     return fragment;
@@ -215,7 +215,12 @@ async function sendMessage() {
     if (userMessage || stopReason == null) {
         let prefix = "";
         if (stopReason != null) {
-            chatHistory.innerHTML += `<div class="chatMessage insideContext"><p>User: ${marked.parse(userMessage)}</p></div>`;
+            let logSpan = document.createElement("span");
+            logSpan.className = "chatMessage insideContext";
+            let paragraph = document.createElement("p");
+            paragraph.textContent = marked.parse(userMessage);
+            logSpan.appendChild(paragraph);
+            chatHistory.appendChild(logSpan);
             messages.push({ "role": "user", "content": userMessage });
             inputBox.value = '';
             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -228,7 +233,7 @@ async function sendMessage() {
                 selectChat(0);
                 updateSavedChatNames();
             }
-            prefix += `<div class="chatMessage insideContext"><p>Assistant:`;
+            prefix += `<span class="chatMessage insideContext"><p>Assistant:`;
         }
 
         var context = [systemMessage, ...messages]
@@ -254,7 +259,7 @@ async function sendMessage() {
                 break;
             }
             addedHistory += part.choices[0]?.delta?.content || '';
-            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p></div>`;
+            chatHistory.innerHTML = oldHistory + `${prefix}${marked.parse(addedHistory)}</p></span>`;
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
