@@ -81,14 +81,46 @@ let messages = [];
 let selectedChat = 0;
 
 function generateInnerHTMLFromMsgs(msgs) {
-    var history = ""
-    msgs.forEach((message, index) => {
+    var fragment = document.createDocumentFragment();
+
+    msgs.forEach((message) => {
         var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
         var content = message.content;
-        var partOfContext = (true/*index >= contextEnd*/) ? `insideContext` : `outsideContext`
-        history += `<div class="chatMessage ${partOfContext}"><p>${role}:${marked.parse(content)}</p></div>`;
-    })
-    return history;
+        var partOfContext = 'insideContext';
+
+        var messageDiv = document.createElement('div');
+        messageDiv.className = `chatMessage ${partOfContext}`;
+
+        var paragraph = document.createElement('p');
+        paragraph.innerHTML = `${role}: ${marked.parse(content)}`;
+        messageDiv.appendChild(paragraph);
+
+        if (role == 'Assistant') {
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-headphones';
+            icon.style.float = 'right';
+            icon.style.marginLeft = '10px';
+
+            messageDiv.addEventListener('mouseenter', function () {
+                icon.style.opacity = 1;
+            });
+
+            messageDiv.addEventListener('mouseleave', function () {
+                icon.style.opacity = 0.1;
+            });
+
+            icon.addEventListener('click', function () {
+                readAloud(content);
+            });
+
+            messageDiv.appendChild(icon);
+            icon.style.opacity = 0.1;
+        }
+
+        fragment.appendChild(messageDiv);
+    });
+
+    return fragment;
 }
 
 let allSavedChats = savedChatsElement.getElementsByClassName("logSpan");
@@ -99,8 +131,10 @@ function selectChat(index) {
     selectedChat = index;
     let chat = savedChats[index];
     messages = chat.messages;
-    contextStart = 0;
-    chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
+    chatHistory.innerHTML = '';
+    if (messages.length > 0) {
+        chatHistory.appendChild(generateInnerHTMLFromMsgs(messages));
+    }
     for (var i = 0; i < allSavedChats.length; i++) {
         allSavedChats[i].classList.remove('selected');
     }
@@ -112,7 +146,10 @@ function updateSavedChatNames() {
     savedChats.forEach((chat, i) => {
         if (i === selectedChat) {
             messages = chat.messages;
-            chatHistory.innerHTML = generateInnerHTMLFromMsgs(messages);
+            chatHistory.innerHTML = '';
+            if (messages.length > 0) {
+                chatHistory.appendChild(generateInnerHTMLFromMsgs(messages));
+            }
         };
 
         let logSpan = document.createElement("span");
@@ -257,7 +294,7 @@ Title:`,
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
     }
-}
+};
 
 inputBox.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -299,3 +336,17 @@ sendButton.addEventListener('click', function () {
     }
     sendMessage();
 });
+
+function readAloud(text) {
+    if ('speechSynthesis' in window) {
+        var utterance = new SpeechSynthesisUtterance(text);
+
+        utterance.pitch = 1; // Range between 0 and 2
+        utterance.rate = 2; // Range between 0.1 (slowest) and 10 (fastest)
+        utterance.volume = 1; // Range between 0 (silent) and 1 (loudest)
+
+        window.speechSynthesis.speak(utterance);
+    } else {
+        console.error('Speech synthesis is not supported in this browser.');
+    }
+}
