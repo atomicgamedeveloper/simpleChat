@@ -80,27 +80,31 @@ const systemMessage = {
 let messages = [];
 let selectedChat = 0;
 
-const renderer = new marked.Renderer();
+/*const renderer = new marked.Renderer();
 renderer.paragraph = function (text) {
     return text;
 };
 marked.setOptions({
     renderer: renderer
-});
+});*/
 
 function generateInnerHTMLFromMsgs(msgs) {
     var fragment = document.createDocumentFragment();
 
-    msgs.forEach((message) => {
+    msgs.forEach((message, index) => {
         var role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
         var content = message.content;
         var partOfContext = 'insideContext';
 
         var messageSpan = document.createElement('span');
         messageSpan.className = `chatMessage ${partOfContext}`;
-
+        if (index == 0 || index > 0 && msgs[index - 1].role != msgs[index].role) {
+            var roleParagraph = document.createElement('p');
+            roleParagraph.innerHTML = `${role}: \n`;
+            messageSpan.appendChild(roleParagraph);
+        }
         var paragraph = document.createElement('p');
-        paragraph.innerHTML = `${role}: ${marked.parse(content)}`;
+        paragraph.innerHTML = marked.parse(content);
         messageSpan.appendChild(paragraph);
 
         if (role == 'Assistant') {
@@ -122,7 +126,7 @@ function generateInnerHTMLFromMsgs(msgs) {
             });
 
             messageSpan.appendChild(icon);
-            icon.style.opacity = 0.1;
+            icon.style.opacity = 0;
         }
 
         fragment.appendChild(messageSpan);
@@ -229,7 +233,7 @@ async function sendMessage() {
             userName.innerHTML = "User:\n"
             userSpan.appendChild(userName);
             let userParagraph = document.createElement("p");
-            userParagraph.innerHTML = marked.parse(userMessage);
+            userParagraph.innerHTML = userMessage;
             userSpan.appendChild(userParagraph);
             chatHistory.appendChild(userSpan);
             messages.push({ "role": "user", "content": userMessage });
@@ -312,7 +316,11 @@ async function sendMessage() {
             swapNewAndStopButton();
         }
 
-        messages.push({ "role": "assistant", "content": addedHistory });
+        if (messages[messages.length - 1].role != "assistant") {
+            messages.push({ "role": "assistant", "content": addedHistory });
+        } else {
+            messages[messages.length - 1].content += addedHistory;
+        }
 
         if (selectedChat == 0 & allSavedChats[0].children[0].innerHTML === "New chat") {
             allSavedChats[0].children[0].innerHTML = "";
@@ -400,7 +408,7 @@ function readAloud(text) {
         var utterance = new SpeechSynthesisUtterance(text);
 
         utterance.pitch = 1; // Range between 0 and 2
-        utterance.rate = 2; // Range between 0.1 (slowest) and 10 (fastest)
+        utterance.rate = 3; // Range between 0.1 (slowest) and 10 (fastest)
         utterance.volume = 1; // Range between 0 (silent) and 1 (loudest)
 
         window.speechSynthesis.speak(utterance);
