@@ -233,7 +233,7 @@ async function sendMessage() {
             userName.innerHTML = "User:\n"
             userSpan.appendChild(userName);
             let userParagraph = document.createElement("p");
-            userParagraph.innerHTML = userMessage;
+            userParagraph.innerHTML = marked.parse(userMessage);
             userSpan.appendChild(userParagraph);
             chatHistory.appendChild(userSpan);
             messages.push({ "role": "user", "content": userMessage });
@@ -257,6 +257,7 @@ async function sendMessage() {
             userSpan.appendChild(assistantName);
 
             let assistantParagraph = document.createElement("p");
+            assistantParagraph.classList.add("assistantMessageContent");
             assistantParagraph.innerHTML = "";
             assistantSpan.appendChild(assistantParagraph);
 
@@ -279,11 +280,11 @@ async function sendMessage() {
 
         var context = [systemMessage, ...messages]
 
-        let oldHistory = chatHistory.getElementsByTagName("p");
-        let lastAssistantParagraph = oldHistory[oldHistory.length - 1];
-        let oldAssistantParagraph = lastAssistantParagraph.innerHTML;
+        let oldHistory = document.getElementsByClassName("assistantMessageContent");
+        let lastMessage = oldHistory[oldHistory.length - 1];
+        let oldAssistantParagraph = lastMessage.innerHTML;
         if (userStoppedReply) {
-            context.push({ "role": "system", "content": "Continue from where your last message abruptly ended." });
+            context.push({ "role": "system", "content": "Remember, no comments or repetitions. Continue and finish your last message exactly where it ended without any repetition or commentary." });
         }
         let addedHistory = "";
         if (!isStreamingResponse) {
@@ -301,7 +302,7 @@ async function sendMessage() {
                 break;
             }
             addedHistory += part.choices[0]?.delta?.content || '';
-            lastAssistantParagraph.innerHTML = oldAssistantParagraph + marked.parse(addedHistory);
+            lastMessage.innerHTML = marked.parse(oldAssistantParagraph + addedHistory);
             if (isScrolledToBottom(chatHistory)) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
@@ -345,20 +346,13 @@ Title:`,
         savedChats[selectedChat] = { "name": savedChats[0].name, "messages": messages };
         fs.writeFileSync("saved-chats.json", JSON.stringify(savedChats));
 
+        let assistantSpans = document.getElementsByClassName("chatMessage insideContext");
+        let assistantSpan = assistantSpans[assistantSpans.length - 1];
         let allListenIcons = document.getElementsByTagName("i");
         let lastListenIcon = allListenIcons[allListenIcons.length - 1];
         lastListenIcon.addEventListener("click", function () {
             readAloud(lastAssistantParagraph.innerText);
         });
-
-        assistantSpan.addEventListener("mouseover", function () {
-            listenIcon.style.opacity = 1;
-        });
-
-        assistantSpan.addEventListener("mouseleave", function () {
-            listenIcon.style.opacity = 0;
-        });
-        assistantSpan.appendChild(listenIcon)
     }
 };
 
@@ -408,7 +402,7 @@ function readAloud(text) {
         var utterance = new SpeechSynthesisUtterance(text);
 
         utterance.pitch = 1; // Range between 0 and 2
-        utterance.rate = 3; // Range between 0.1 (slowest) and 10 (fastest)
+        utterance.rate = 2; // Range between 0.1 (slowest) and 10 (fastest)
         utterance.volume = 1; // Range between 0 (silent) and 1 (loudest)
 
         window.speechSynthesis.speak(utterance);
