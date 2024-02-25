@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 let openAIKey = "";
 let settings = "";
 let savedChats = "";
+let lastSpokenText = "";
 
 let newChat = {
     "name": "New chat",
@@ -151,6 +152,7 @@ function selectChat(index) {
         allSavedChats[i].classList.remove('selected');
     }
     allSavedChats[index].classList.add("selected");
+    chatHistory.scrollTop = chatHistory.scrollHeight;
 };
 
 function updateSavedChatNames() {
@@ -254,7 +256,7 @@ async function sendMessage() {
 
             let assistantName = document.createElement("p");
             assistantName.innerHTML = "Assistant:\n";
-            userSpan.appendChild(assistantName);
+            assistantSpan.appendChild(assistantName);
 
             let assistantParagraph = document.createElement("p");
             assistantParagraph.classList.add("assistantMessageContent");
@@ -267,9 +269,7 @@ async function sendMessage() {
             listenIcon.style.float = "right";
             listenIcon.style.marginLeft = "10px";
 
-            assistantSpan.addEventListener("mouseover", function () {
-                listenIcon.style.opacity = 1;
-            });
+            listenIcon.style.opacity = 0;
 
             assistantSpan.addEventListener("mouseleave", function () {
                 listenIcon.style.opacity = 0;
@@ -351,7 +351,10 @@ Title:`,
         let allListenIcons = document.getElementsByTagName("i");
         let lastListenIcon = allListenIcons[allListenIcons.length - 1];
         lastListenIcon.addEventListener("click", function () {
-            readAloud(lastAssistantParagraph.innerText);
+            readAloud(lastMessage.innerText);
+        });
+        assistantSpan.addEventListener("mouseover", function () {
+            lastListenIcon.style.opacity = 1;
         });
     }
 };
@@ -399,13 +402,21 @@ sendButton.addEventListener('click', function () {
 
 function readAloud(text) {
     if ('speechSynthesis' in window) {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            if (lastSpokenText == text) {
+                return;
+            }
+        }
+
         var utterance = new SpeechSynthesisUtterance(text);
 
         utterance.pitch = 1; // Range between 0 and 2
-        utterance.rate = 2; // Range between 0.1 (slowest) and 10 (fastest)
+        utterance.rate = 2; // Adjusted to 1 for a normal rate, range between 0.1 and 10
         utterance.volume = 1; // Range between 0 (silent) and 1 (loudest)
 
         window.speechSynthesis.speak(utterance);
+        lastSpokenText = text
     } else {
         console.error('Speech synthesis is not supported in this browser.');
     }
